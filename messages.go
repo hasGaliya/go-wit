@@ -66,6 +66,23 @@ type MessageRequest struct {
 	// Meta        map[string]interface{}
 }
 
+/**
+Converse request
+https://wit.ai/docs/http/20160526#post--converse-link
+ */
+type ConverseRequest struct {
+	SessionId	string 		`json:"session_id"`
+	Query		string		`json:"q"`
+	Context		string		`json:"-"`
+}
+
+type ConverseResponse struct {
+	Type		string		`json:"type"`
+	Msg		string 		`json:"msg"`
+	Action		string		`json:"action"`
+	Entities	MessageEntity	`json:"entities"`
+	Confidence 	float32		`json:"confidence"`
+}
 // Context represents the context portion of the message request
 type Context struct {
 	ReferenceTime string `json:"reference_time"`
@@ -104,6 +121,28 @@ func (client *Client) Message(request *MessageRequest) (*Message, error) {
 	}
 	message, _ := parseMessage(result)
 	return message, nil
+}
+
+func (client *Client) Converse(request *ConverseRequest) (*ConverseResponse, error){
+	query := url.QueryEscape(request.Query)
+	if request.Context != "" {
+		query += "&context=" + request.Context
+	}
+	if request.SessionId != "" {
+		query += "&session_id=" + request.SessionId
+	}
+	result, err := post(client.APIBase + "/converse?q=" + query, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	converseResponse := &ConverseResponse{}
+	err = json.Unmarshal(result, converseResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return converseResponse, err
 }
 
 // AudioMessage requests processing of an audio message (https://wit.ai/docs/api#toc_8)
